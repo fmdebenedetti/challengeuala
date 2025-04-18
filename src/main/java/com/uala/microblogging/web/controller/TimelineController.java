@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/timeline")
+@RequestMapping("/api/timeline")
 @RequiredArgsConstructor
 public class TimelineController {
 

@@ -1,4 +1,4 @@
-package com.uala.microblogging.infrastructure.mongo.document;
+package com.uala.microblogging.infrastructure.document;
 
 import com.uala.microblogging.domain.model.Tweet;
 import lombok.Data;

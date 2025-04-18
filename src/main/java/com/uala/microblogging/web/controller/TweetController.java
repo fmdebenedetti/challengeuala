@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/tweets")
+@RequestMapping("/api/tweets")
 @RequiredArgsConstructor
 public class TweetController {
 
@@ -22,7 +22,7 @@ public class TweetController {
             @RequestHeader("X-User-Id") UUID userId,
             @RequestBody PostTweetRequest request
     ) {
-        Tweet tweet = postTweetUseCase.execute(userId, request.getContent());
+        Tweet tweet = postTweetUseCase.postTweet(userId, request.getContent());
         return ResponseEntity.ok(
                 TweetResponse.builder()
                         .id(tweet.getId())

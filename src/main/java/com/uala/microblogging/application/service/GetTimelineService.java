@@ -1,4 +1,4 @@
-package com.uala.microblogging.service;
+package com.uala.microblogging.application.service;
 
 import com.uala.microblogging.application.useCase.GetTimelineUseCase;
 import com.uala.microblogging.domain.model.Tweet;

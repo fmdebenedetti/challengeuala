@@ -1,1 +1,0 @@
-package com.uala.microblogging.infrastructure.mongo;

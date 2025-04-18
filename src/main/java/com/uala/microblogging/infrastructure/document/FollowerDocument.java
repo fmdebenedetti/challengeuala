@@ -1,4 +1,4 @@
-package com.uala.microblogging.infrastructure.mongo.document;
+package com.uala.microblogging.infrastructure.document;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;

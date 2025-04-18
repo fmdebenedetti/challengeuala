@@ -1,4 +1,4 @@
-package com.uala.microblogging.infrastructure.mongo.document;
+package com.uala.microblogging.infrastructure.document;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

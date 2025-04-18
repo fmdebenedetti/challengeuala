@@ -1,4 +1,4 @@
-package com.uala.microblogging.service;
+package com.uala.microblogging.application.service;
 
 import com.uala.microblogging.application.useCase.PostTweetUseCase;
 import com.uala.microblogging.domain.model.Tweet;
@@ -13,8 +13,13 @@ public class PostTweetService implements PostTweetUseCase {
 
     private final TweetRepository tweetRepository;
 
+    private static final int MAX_TWEET_LENGTH = 280;
+
     @Override
-    public Tweet execute(UUID userId, String content) {
+    public Tweet postTweet(UUID userId, String content) {
+        if (content.length() > MAX_TWEET_LENGTH) {
+            throw new IllegalArgumentException("Content must be less than or equal to 280 characters.");
+        }
         Tweet tweet = Tweet.builder()
                 .id(UUID.randomUUID())
                 .userId(userId)

@@ -1,8 +1,8 @@
-package com.uala.microblogging.infrastructure.mongo.adapter;
+package com.uala.microblogging.infrastructure.repository;
 
 import com.uala.microblogging.domain.model.Tweet;
 import com.uala.microblogging.domain.repository.TimelineRepository;
-import com.uala.microblogging.infrastructure.mongo.document.TimelineDocument;
+import com.uala.microblogging.infrastructure.document.TimelineDocument;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;

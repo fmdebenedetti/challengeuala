@@ -1,6 +1,6 @@
-package com.uala.microblogging.infrastructure.mongo;
+package com.uala.microblogging.infrastructure.adapter;
 
-import com.uala.microblogging.infrastructure.mongo.document.TweetDocument;
+import com.uala.microblogging.infrastructure.document.TweetDocument;
 import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.UUID;

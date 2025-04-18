@@ -7,6 +7,7 @@ import java.util.UUID;
 
 @Getter
 @Builder
+@AllArgsConstructor
 public class Tweet {
     private UUID id;
     private UUID userId;

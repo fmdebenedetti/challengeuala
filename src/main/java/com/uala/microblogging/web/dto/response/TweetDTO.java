@@ -1,4 +1,4 @@
-package com.uala.microblogging.web.dto;
+package com.uala.microblogging.web.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
@@ -8,7 +8,7 @@ import java.util.UUID;
 
 @Data
 @Builder
-public class TweetResponse {
+public class TweetDTO {
     private UUID id;
     private UUID userId;
     private String content;

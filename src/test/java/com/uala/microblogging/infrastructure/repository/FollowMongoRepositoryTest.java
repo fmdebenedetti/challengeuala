@@ -1,6 +1,8 @@
 package com.uala.microblogging.infrastructure.repository;
 
+import com.uala.microblogging.infrastructure.adapter.SpringDataFollowRepository;
 import com.uala.microblogging.infrastructure.document.FollowerDocument;
+import com.uala.microblogging.infrastructure.repository.mongo.FollowMongoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -12,36 +14,39 @@ import static org.assertj.core.api.Assertions.*;
 
 class FollowMongoRepositoryTest {
 
-    private MongoTemplate mongoTemplate;
+    private SpringDataFollowRepository springDataFollowRepository;
     private FollowMongoRepository followMongoRepository;
 
     @BeforeEach
     void setUp() {
-        mongoTemplate = mock(MongoTemplate.class);
-        followMongoRepository = new FollowMongoRepository(mongoTemplate);
+        springDataFollowRepository = mock(SpringDataFollowRepository.class);
+        followMongoRepository = new FollowMongoRepository(springDataFollowRepository);
     }
 
     @Test
     void shouldReturnFollowerIds_WhenDocumentExists() {
-        String userId = UUID.randomUUID().toString();
-        FollowerDocument doc = new FollowerDocument();
-        doc.setId(userId);
-        doc.setFollowerIds(List.of("follower1", "follower2"));
+        UUID userId = UUID.randomUUID();
+        UUID follower1 = UUID.randomUUID();
+        UUID follower2 = UUID.randomUUID();
+        FollowerDocument doc = FollowerDocument.builder()
+                .id(userId)
+                .followerIds(List.of(follower1, follower2))
+                .build();
 
-        when(mongoTemplate.findById(userId, FollowerDocument.class)).thenReturn(doc);
+        when(springDataFollowRepository.findById(userId)).thenReturn(Optional.ofNullable(doc));
 
-        List<String> result = followMongoRepository.findFollowerIdsByUserId(userId);
+        List<UUID> result = followMongoRepository.findFollowerIdsByUserId(userId);
 
-        assertThat(result).containsExactly("follower1", "follower2");
+        assertThat(result).containsExactly(follower1, follower2);
     }
 
     @Test
     void shouldReturnEmptyList_WhenDocumentNotFound() {
-        String userId = UUID.randomUUID().toString();
+        UUID userId = UUID.randomUUID();
 
-        when(mongoTemplate.findById(userId, FollowerDocument.class)).thenReturn(null);
+        when(springDataFollowRepository.findById(userId)).thenReturn(null);
 
-        List<String> result = followMongoRepository.findFollowerIdsByUserId(userId);
+        List<UUID> result = followMongoRepository.findFollowerIdsByUserId(userId);
 
         assertThat(result).isEmpty();
     }
@@ -51,11 +56,11 @@ class FollowMongoRepositoryTest {
         UUID firsFollowerId = UUID.randomUUID();
         UUID secondFollowerId = UUID.randomUUID();
 
-        when(mongoTemplate.findById(secondFollowerId.toString(), FollowerDocument.class)).thenReturn(null);
+        when(springDataFollowRepository.findById(secondFollowerId)).thenReturn(null);
 
         followMongoRepository.follow(firsFollowerId, secondFollowerId);
 
-        verify(mongoTemplate).save(argThat(doc ->
+        verify(springDataFollowRepository).save(argThat(doc ->
                 ((FollowerDocument) doc).getId().equals(secondFollowerId.toString()) &&
                         ((FollowerDocument) doc).getFollowerIds().contains(firsFollowerId.toString())
         ));
@@ -65,16 +70,18 @@ class FollowMongoRepositoryTest {
     void shouldAppendFollower_WhenNotAlreadyPresent() {
         UUID firsFollowerId = UUID.randomUUID();
         UUID secondFollowerId = UUID.randomUUID();
+        UUID otherFollower = UUID.randomUUID();
 
-        FollowerDocument existingDoc = new FollowerDocument();
-        existingDoc.setId(secondFollowerId.toString());
-        existingDoc.setFollowerIds(new ArrayList<>(List.of("other-follower")));
+        FollowerDocument existingDoc = FollowerDocument.builder()
+                .id(secondFollowerId)
+                .followerIds(List.of(otherFollower))
+                .build();
 
-        when(mongoTemplate.findById(secondFollowerId.toString(), FollowerDocument.class)).thenReturn(existingDoc);
+        when(springDataFollowRepository.findById(secondFollowerId)).thenReturn(Optional.ofNullable(existingDoc));
 
         followMongoRepository.follow(firsFollowerId, secondFollowerId);
 
-        verify(mongoTemplate).save(argThat(doc ->
+        verify(springDataFollowRepository).save(argThat(doc ->
                 ((FollowerDocument) doc).getId().equals(secondFollowerId.toString()) &&
                         ((FollowerDocument) doc).getFollowerIds().contains(firsFollowerId.toString())
         ));
@@ -85,15 +92,16 @@ class FollowMongoRepositoryTest {
         UUID firsFollowerId = UUID.randomUUID();
         UUID secondFollowerId = UUID.randomUUID();
 
-        FollowerDocument existingDoc = new FollowerDocument();
-        existingDoc.setId(secondFollowerId.toString());
-        existingDoc.setFollowerIds(new ArrayList<>(List.of(firsFollowerId.toString())));
+        FollowerDocument existingDoc = FollowerDocument.builder()
+                .id(secondFollowerId)
+                .followerIds(List.of(firsFollowerId))
+                .build();
 
-        when(mongoTemplate.findById(secondFollowerId.toString(), FollowerDocument.class)).thenReturn(existingDoc);
+        when(springDataFollowRepository.findById(secondFollowerId)).thenReturn(Optional.ofNullable(existingDoc));
 
         followMongoRepository.follow(firsFollowerId, secondFollowerId);
 
-        verify(mongoTemplate).save(existingDoc); // still calls save, but doesn't duplicate
-        assertThat(existingDoc.getFollowerIds()).containsOnlyOnce(firsFollowerId.toString());
+        verify(springDataFollowRepository).save(existingDoc); // still calls save, but doesn't duplicate
+        assertThat(existingDoc.getFollowerIds()).containsOnlyOnce(firsFollowerId);
     }
 }

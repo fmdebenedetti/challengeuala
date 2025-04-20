@@ -3,6 +3,7 @@ package com.uala.microblogging.infrastructure.repository;
 import com.uala.microblogging.domain.model.Tweet;
 import com.uala.microblogging.infrastructure.adapter.SpringDataTweetRepository;
 import com.uala.microblogging.infrastructure.document.TweetDocument;
+import com.uala.microblogging.infrastructure.repository.mongo.TweetMongoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

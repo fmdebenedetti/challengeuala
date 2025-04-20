@@ -1,7 +1,8 @@
 package com.uala.microblogging.applicaction.service;
 
+import com.uala.microblogging.application.exception.SelfFollowException;
 import com.uala.microblogging.application.service.FollowUserService;
-import com.uala.microblogging.infrastructure.repository.FollowMongoRepository;
+import com.uala.microblogging.infrastructure.repository.mongo.FollowMongoRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -43,7 +44,7 @@ public class FollowUserServiceTest {
         UUID userId = UUID.randomUUID();
 
         // act & assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        SelfFollowException exception = assertThrows(SelfFollowException.class, () -> {
             followUserService.follow(userId, userId);
         });
 

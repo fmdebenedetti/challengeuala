@@ -3,7 +3,7 @@ package com.uala.microblogging.web.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uala.microblogging.application.useCase.PostTweetUseCase;
 import com.uala.microblogging.domain.model.Tweet;
-import com.uala.microblogging.web.dto.PostTweetRequest;
+import com.uala.microblogging.web.dto.request.PostTweetRequest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -7,5 +7,5 @@ import java.util.UUID;
 
 public interface TweetRepository {
     Tweet save(Tweet tweet);
-    List<Tweet> findAllByIds(List<UUID> tweetIds);
+    List<Tweet> findByUserIdInOrderByCreatedAtDesc(List<UUID> tweetIds);
 }

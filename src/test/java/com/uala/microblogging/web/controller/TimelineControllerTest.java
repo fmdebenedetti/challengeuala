@@ -51,7 +51,7 @@ class TimelineControllerTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        when(getTimelineUseCase.getTimeline(userId, cursor, limit))
+        when(getTimelineUseCase.getTimeline(userId))
                 .thenReturn(Collections.singletonList(tweet));
 
         // Assert
@@ -63,7 +63,7 @@ class TimelineControllerTest {
                 .andExpect(jsonPath("$[0].content").value("This is a test tweet"));
 
         // Verify that the use case method was called once with the correct parameters
-        verify(getTimelineUseCase).getTimeline(userId, cursor, limit);
+        verify(getTimelineUseCase).getTimeline(userId);
     }
 
     @Test
@@ -79,7 +79,7 @@ class TimelineControllerTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        when(getTimelineUseCase.getTimeline(userId, LocalDateTime.MIN, limit))
+        when(getTimelineUseCase.getTimeline(userId))
                 .thenReturn(Collections.singletonList(tweet));
 
         // Assert
@@ -90,6 +90,6 @@ class TimelineControllerTest {
                 .andExpect(jsonPath("$[0].content").value("This is a test tweet"));
 
         // Verify that the use case method was called once with the default cursor (LocalDateTime.MIN)
-        verify(getTimelineUseCase).getTimeline(userId, LocalDateTime.MIN, limit);
+        verify(getTimelineUseCase).getTimeline(userId);
     }
 }

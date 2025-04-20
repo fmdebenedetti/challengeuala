@@ -1,7 +1,8 @@
 package com.uala.microblogging.application.service;
 
+import com.uala.microblogging.application.exception.SelfFollowException;
 import com.uala.microblogging.application.useCase.FollowUserUseCase;
-import com.uala.microblogging.infrastructure.repository.FollowMongoRepository;
+import com.uala.microblogging.infrastructure.repository.mongo.FollowMongoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -16,7 +17,7 @@ public class FollowUserService implements FollowUserUseCase {
     @Override
     public void follow(UUID followerId, UUID followeeId) {
         if (followerId.equals(followeeId)) {
-            throw new IllegalArgumentException("A user cannot follow themselves.");
+            throw new SelfFollowException();
         }
         followMongoRepository.follow(followerId, followeeId);
     }

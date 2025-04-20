@@ -2,6 +2,7 @@ package com.uala.microblogging.infrastructure.repository;
 
 import com.uala.microblogging.domain.model.Tweet;
 import com.uala.microblogging.infrastructure.document.TimelineDocument;
+import com.uala.microblogging.infrastructure.repository.mongo.TimelineMongoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.repository.MongoRepository;
@@ -44,9 +45,10 @@ class TimelineMongoRepositoryTest {
         Tweet tweet2 = new Tweet(UUID.randomUUID(), userId, "Tweet 2", cursor.plusMinutes(2));
         Tweet tweetOld = new Tweet(UUID.randomUUID(), userId, "Old", cursor.minusMinutes(5)); // filtered out
 
-        TimelineDocument timelineDocument = new TimelineDocument();
-        timelineDocument.setId(userId.toString());
-        timelineDocument.setTweets(List.of(tweet1, tweet2, tweetOld));
+        TimelineDocument timelineDocument = TimelineDocument.builder()
+                .id(userId.toString())
+                .tweets(List.of(tweet1, tweet2, tweetOld))
+                .build();
 
         when(mongoRepository.findById(userId.toString())).thenReturn(Optional.of(timelineDocument));
 

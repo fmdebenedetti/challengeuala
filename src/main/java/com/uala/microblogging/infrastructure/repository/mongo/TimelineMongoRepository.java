@@ -1,4 +1,4 @@
-package com.uala.microblogging.infrastructure.repository;
+package com.uala.microblogging.infrastructure.repository.mongo;
 
 import com.uala.microblogging.domain.model.Tweet;
 import com.uala.microblogging.domain.repository.TimelineRepository;
@@ -37,9 +37,10 @@ public class TimelineMongoRepository implements TimelineRepository {
 
     @Override
     public void saveTimeline(UUID userId, List<Tweet> tweets) {
-        TimelineDocument timelineDocument = new TimelineDocument();
-        timelineDocument.setId(userId.toString());
-        timelineDocument.setTweets(tweets);
+        TimelineDocument timelineDocument = TimelineDocument.builder()
+                .id(userId.toString())
+                .tweets(tweets)
+                .build();
         mongoRepository.save(timelineDocument);
     }
 }

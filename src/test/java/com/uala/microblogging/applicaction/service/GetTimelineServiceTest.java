@@ -55,11 +55,11 @@ public class GetTimelineServiceTest {
         // Mocking the timelineRepository and tweetRepository
         when(timelineRepository.getTweetIdsForUser(userId, cursor, limit))
                 .thenReturn(Arrays.asList(tweetId1, tweetId2));
-        when(tweetRepository.findAllByIds(Arrays.asList(tweetId1, tweetId2)))
+        when(tweetRepository.findByUserIdInOrderByCreatedAtDesc(Arrays.asList(tweetId1, tweetId2)))
                 .thenReturn(Arrays.asList(tweet1, tweet2));
 
         // Act
-        List<Tweet> tweets = getTimelineService.getTimeline(userId, cursor, limit);
+        List<Tweet> tweets = getTimelineService.getTimeline(userId);
 
         // Assert
         assertEquals(2, tweets.size());
@@ -68,7 +68,7 @@ public class GetTimelineServiceTest {
 
         // Verificamos que los repositorios fueron llamados correctamente
         verify(timelineRepository).getTweetIdsForUser(userId, cursor, limit);
-        verify(tweetRepository).findAllByIds(Arrays.asList(tweetId1, tweetId2));
+        verify(tweetRepository).findByUserIdInOrderByCreatedAtDesc(Arrays.asList(tweetId1, tweetId2));
     }
 
     @Test
@@ -83,13 +83,13 @@ public class GetTimelineServiceTest {
                 .thenReturn(Collections.emptyList());
 
         // Act
-        List<Tweet> tweets = getTimelineService.getTimeline(userId, cursor, limit);
+        List<Tweet> tweets = getTimelineService.getTimeline(userId);
 
         // Assert
         assertEquals(0, tweets.size());  // Debería devolver una lista vacía
 
         // Verificamos que los repositorios fueron llamados correctamente
         verify(timelineRepository).getTweetIdsForUser(userId, cursor, limit);
-        verify(tweetRepository).findAllByIds(Collections.emptyList());
+        verify(tweetRepository).findByUserIdInOrderByCreatedAtDesc(Collections.emptyList());
     }
 }

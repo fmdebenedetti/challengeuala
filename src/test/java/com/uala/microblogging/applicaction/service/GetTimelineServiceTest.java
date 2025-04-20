@@ -1,95 +1,99 @@
 package com.uala.microblogging.applicaction.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.uala.microblogging.application.exception.RedisErrorException;
 import com.uala.microblogging.application.service.GetTimelineService;
 import com.uala.microblogging.domain.model.Tweet;
-import com.uala.microblogging.domain.repository.TimelineRepository;
+import com.uala.microblogging.domain.repository.FollowRepository;
 import com.uala.microblogging.domain.repository.TweetRepository;
+import com.uala.microblogging.infrastructure.repository.redis.TimelineRedisRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class GetTimelineServiceTest {
+@MockitoSettings(strictness = Strictness.LENIENT)
+class GetTimelineServiceTest {
 
     @Mock
-    private TimelineRepository timelineRepository;
+    private FollowRepository followRepository;
 
     @Mock
     private TweetRepository tweetRepository;
 
+    @Mock
+    private TimelineRedisRepository timelineRedisRepository;
+
     @InjectMocks
     private GetTimelineService getTimelineService;
 
-    @Test
-    public void testGetTimeline() {
-        // Arrange
-        UUID userId = UUID.randomUUID();
-        LocalDateTime cursor = LocalDateTime.now().minusDays(1);
-        int limit = 10;
+    private ObjectMapper objectMapper;
 
-        UUID tweetId1 = UUID.randomUUID();
-        UUID tweetId2 = UUID.randomUUID();
+    @BeforeEach
+    void setUp() {
+        objectMapper = new ObjectMapper()
+                .registerModule(new JavaTimeModule())
+                .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
-        Tweet tweet1 = Tweet.builder()
-                .id(tweetId1)
-                .createdAt(LocalDateTime.now().minusHours(1))
-                .build();
-
-        Tweet tweet2 = Tweet.builder()
-                .id(tweetId2)
-                .createdAt(LocalDateTime.now().minusMinutes(30))
-                .build();
-
-        // Mocking the timelineRepository and tweetRepository
-        when(timelineRepository.getTweetIdsForUser(userId, cursor, limit))
-                .thenReturn(Arrays.asList(tweetId1, tweetId2));
-        when(tweetRepository.findByUserIdInOrderByCreatedAtDesc(Arrays.asList(tweetId1, tweetId2)))
-                .thenReturn(Arrays.asList(tweet1, tweet2));
-
-        // Act
-        List<Tweet> tweets = getTimelineService.getTimeline(userId);
-
-        // Assert
-        assertEquals(2, tweets.size());
-        assertEquals(tweet2, tweets.get(0));  // El tweet más reciente debe ser el primero
-        assertEquals(tweet1, tweets.get(1));  // El tweet más antiguo debe ser el segundo
-
-        // Verificamos que los repositorios fueron llamados correctamente
-        verify(timelineRepository).getTweetIdsForUser(userId, cursor, limit);
-        verify(tweetRepository).findByUserIdInOrderByCreatedAtDesc(Arrays.asList(tweetId1, tweetId2));
+        getTimelineService = new GetTimelineService(followRepository, tweetRepository, timelineRedisRepository, objectMapper);
     }
 
     @Test
-    public void testGetTimelineNoTweets() {
-        // Arrange
+    void shouldReturnTweetsFromMongoAndCacheThemIfRedisEmpty() throws Exception {
         UUID userId = UUID.randomUUID();
-        LocalDateTime cursor = LocalDateTime.now().minusDays(1);
-        int limit = 10;
+        UUID followeeId = UUID.randomUUID();
 
-        // Mocking the timelineRepository and tweetRepository for no tweets
-        when(timelineRepository.getTweetIdsForUser(userId, cursor, limit))
-                .thenReturn(Collections.emptyList());
+        Tweet tweet = Tweet.builder()
+                .id(UUID.randomUUID())
+                .content("Desde Mongo")
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        // Act
-        List<Tweet> tweets = getTimelineService.getTimeline(userId);
+        when(timelineRedisRepository.getTimeline(userId)).thenReturn(Collections.emptyList());
+        when(followRepository.findFollowerIdsByUserId(userId)).thenReturn(List.of(followeeId));
+        when(tweetRepository.findByUserIdInOrderByCreatedAtDesc(List.of(followeeId))).thenReturn(List.of(tweet));
 
-        // Assert
-        assertEquals(0, tweets.size());  // Debería devolver una lista vacía
+        List<Tweet> result = getTimelineService.getTimeline(userId);
 
-        // Verificamos que los repositorios fueron llamados correctamente
-        verify(timelineRepository).getTweetIdsForUser(userId, cursor, limit);
-        verify(tweetRepository).findByUserIdInOrderByCreatedAtDesc(Collections.emptyList());
+        assertEquals(1, result.size());
+        assertEquals(tweet.getId(), result.get(0).getId());
+
+        verify(timelineRedisRepository).addTweetToTimeline(eq(userId), anyString());
+    }
+
+    @Test
+    void shouldThrowExceptionIfRedisFailsToStore() throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID followeeId = UUID.randomUUID();
+
+        Tweet tweet = Tweet.builder()
+                .id(UUID.randomUUID())
+                .content("Error al guardar")
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        when(timelineRedisRepository.getTimeline(userId)).thenReturn(Collections.emptyList());
+        when(followRepository.findFollowerIdsByUserId(userId)).thenReturn(List.of(followeeId));
+        when(tweetRepository.findByUserIdInOrderByCreatedAtDesc(List.of(followeeId))).thenReturn(List.of(tweet));
+        // Forzar excepción al guardar en Redis
+        lenient().doThrow(new RuntimeException("Redis error"))
+                .when(timelineRedisRepository).addTweetToTimeline(any(), any());
+
+        assertThrows(RedisErrorException.class, () -> getTimelineService.getTimeline(userId));
     }
 }

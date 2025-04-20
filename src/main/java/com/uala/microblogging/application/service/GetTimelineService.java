@@ -36,7 +36,7 @@ public class GetTimelineService implements GetTimelineUseCase {
                         try {
                             return objectMapper.readValue(json, Tweet.class);
                         } catch (Exception e) {
-                            return null;
+                            throw new RedisErrorException("Error al obtener datos de Redis");
                         }
                     })
                     .filter(Objects::nonNull)

@@ -1,11 +1,11 @@
 package com.uala.microblogging.infrastructure.repository;
 
-import com.uala.microblogging.infrastructure.adapter.SpringDataFollowRepository;
 import com.uala.microblogging.infrastructure.document.FollowerDocument;
+import com.uala.microblogging.infrastructure.document.TimelineDocument;
 import com.uala.microblogging.infrastructure.repository.mongo.FollowMongoRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.repository.MongoRepository;
 
 import java.util.*;
 
@@ -14,13 +14,13 @@ import static org.assertj.core.api.Assertions.*;
 
 class FollowMongoRepositoryTest {
 
-    private SpringDataFollowRepository springDataFollowRepository;
+    private MongoRepository<FollowerDocument, UUID> repository;
     private FollowMongoRepository followMongoRepository;
 
     @BeforeEach
     void setUp() {
-        springDataFollowRepository = mock(SpringDataFollowRepository.class);
-        followMongoRepository = new FollowMongoRepository(springDataFollowRepository);
+        repository = mock(MongoRepository.class);
+        followMongoRepository = new FollowMongoRepository(repository);
     }
 
     @Test
@@ -33,7 +33,7 @@ class FollowMongoRepositoryTest {
                 .followerIds(List.of(follower1, follower2))
                 .build();
 
-        when(springDataFollowRepository.findById(userId)).thenReturn(Optional.ofNullable(doc));
+        when(repository.findById(userId)).thenReturn(Optional.ofNullable(doc));
 
         List<UUID> result = followMongoRepository.findFollowerIdsByUserId(userId);
 
@@ -44,7 +44,7 @@ class FollowMongoRepositoryTest {
     void shouldReturnEmptyList_WhenDocumentNotFound() {
         UUID userId = UUID.randomUUID();
 
-        when(springDataFollowRepository.findById(userId)).thenReturn(null);
+        when(repository.findById(userId)).thenReturn(Optional.empty());
 
         List<UUID> result = followMongoRepository.findFollowerIdsByUserId(userId);
 
@@ -56,13 +56,13 @@ class FollowMongoRepositoryTest {
         UUID firsFollowerId = UUID.randomUUID();
         UUID secondFollowerId = UUID.randomUUID();
 
-        when(springDataFollowRepository.findById(secondFollowerId)).thenReturn(null);
+        when(repository.findById(secondFollowerId)).thenReturn(Optional.empty());
 
         followMongoRepository.follow(firsFollowerId, secondFollowerId);
 
-        verify(springDataFollowRepository).save(argThat(doc ->
-                ((FollowerDocument) doc).getId().equals(secondFollowerId.toString()) &&
-                        ((FollowerDocument) doc).getFollowerIds().contains(firsFollowerId.toString())
+        verify(repository).save(argThat(doc ->
+                ((FollowerDocument) doc).getId().equals(secondFollowerId) &&
+                        ((FollowerDocument) doc).getFollowerIds().contains(firsFollowerId)
         ));
     }
 
@@ -77,31 +77,33 @@ class FollowMongoRepositoryTest {
                 .followerIds(List.of(otherFollower))
                 .build();
 
-        when(springDataFollowRepository.findById(secondFollowerId)).thenReturn(Optional.ofNullable(existingDoc));
+        when(repository.findById(any())).thenReturn(Optional.ofNullable(existingDoc));
 
         followMongoRepository.follow(firsFollowerId, secondFollowerId);
 
-        verify(springDataFollowRepository).save(argThat(doc ->
-                ((FollowerDocument) doc).getId().equals(secondFollowerId.toString()) &&
-                        ((FollowerDocument) doc).getFollowerIds().contains(firsFollowerId.toString())
+        verify(repository).save(argThat(doc ->
+                ((FollowerDocument) doc).getId().equals(secondFollowerId) &&
+                        ((FollowerDocument) doc).getFollowerIds().contains(firsFollowerId)
         ));
     }
 
     @Test
     void shouldNotAddFollower_IfAlreadyPresent() {
-        UUID firsFollowerId = UUID.randomUUID();
+        UUID firstFollowerId = UUID.randomUUID();
         UUID secondFollowerId = UUID.randomUUID();
 
         FollowerDocument existingDoc = FollowerDocument.builder()
                 .id(secondFollowerId)
-                .followerIds(List.of(firsFollowerId))
+                .followerIds(new ArrayList<>(List.of(firstFollowerId)))
                 .build();
 
-        when(springDataFollowRepository.findById(secondFollowerId)).thenReturn(Optional.ofNullable(existingDoc));
+        when(repository.findById(secondFollowerId)).thenReturn(Optional.of(existingDoc));
 
-        followMongoRepository.follow(firsFollowerId, secondFollowerId);
+        followMongoRepository.follow(firstFollowerId, secondFollowerId);
 
-        verify(springDataFollowRepository).save(existingDoc); // still calls save, but doesn't duplicate
-        assertThat(existingDoc.getFollowerIds()).containsOnlyOnce(firsFollowerId);
+        verify(repository, never()).save(any(FollowerDocument.class));
+
+        assertThat(existingDoc.getFollowerIds()).containsOnlyOnce(firstFollowerId);
     }
+
 }

@@ -1,8 +1,10 @@
 package com.uala.microblogging.applicaction.service;
 
+import com.uala.microblogging.application.exception.TweetTooLongException;
 import com.uala.microblogging.application.service.PostTweetService;
 import com.uala.microblogging.domain.model.Tweet;
 import com.uala.microblogging.domain.repository.TweetRepository;
+import com.uala.microblogging.infrastructure.messaging.producer.TweetEventProducer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -25,6 +27,9 @@ public class PostTweetServiceTest {
     @InjectMocks
     private PostTweetService postTweetService;
 
+    @Mock
+    private TweetEventProducer tweetEventProducer;
+
     @Test
     public void testPostTweetSuccessful() {
         // Arrange
@@ -37,7 +42,6 @@ public class PostTweetServiceTest {
                 .createdAt(LocalDateTime.now())
                 .build();
 
-        // Usamos doReturn().when() en lugar de when().thenReturn() para evitar problemas con estricta coincidencia de argumentos
         doReturn(tweet).when(tweetRepository).save(any(Tweet.class));
 
         // Act
@@ -46,7 +50,7 @@ public class PostTweetServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals(content, result.getContent());
-        verify(tweetRepository).save(any(Tweet.class));  // Verificamos que se llamó con cualquier Tweet
+        verify(tweetRepository).save(any(Tweet.class));
     }
 
     @Test
@@ -56,11 +60,11 @@ public class PostTweetServiceTest {
         String longContent = "a".repeat(281);
 
         // Act & Assert
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+        TweetTooLongException exception = assertThrows(TweetTooLongException.class, () -> {
             postTweetService.postTweet(userId, longContent);
         });
 
         // Verificar el mensaje de la excepción
-        assertEquals("Content must be less than or equal to 280 characters.", exception.getMessage());
+        assertEquals("Tweet exceeds the 280 character limit.", exception.getMessage());
     }
 }

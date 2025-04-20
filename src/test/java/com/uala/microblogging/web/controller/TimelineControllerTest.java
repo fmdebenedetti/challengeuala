@@ -1,95 +1,82 @@
 package com.uala.microblogging.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uala.microblogging.application.useCase.GetTimelineUseCase;
 import com.uala.microblogging.domain.model.Tweet;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(TimelineController.class)
+@Import(TimelineControllerTest.TestConfig.class)
 class TimelineControllerTest {
 
-    @Mock
-    private GetTimelineUseCase getTimelineUseCase;
-
-    @InjectMocks
-    private TimelineController timelineController;
-
+    @Autowired
     private MockMvc mockMvc;
 
-    @Test
-    public void testGetTimeline() throws Exception {
-        // given
-        mockMvc = MockMvcBuilders.standaloneSetup(timelineController).build();
+    @Autowired
+    private ObjectMapper objectMapper;
 
-        UUID userId = UUID.randomUUID();
-        LocalDateTime cursor = LocalDateTime.now();
-        int limit = 20;
+    @Autowired
+    private GetTimelineUseCase getTimelineUseCase;
 
-        Tweet tweet = Tweet.builder()
-                .content("This is a test tweet")
-                .createdAt(LocalDateTime.now())
-                .build();
-
-        when(getTimelineUseCase.getTimeline(userId))
-                .thenReturn(Collections.singletonList(tweet));
-
-        // Assert
-        mockMvc.perform(get("/api/timeline")
-                        .header("X-USER-ID", userId.toString())
-                        .param("cursor", cursor.toString())
-                        .param("limit", String.valueOf(limit)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].content").value("This is a test tweet"));
-
-        // Verify that the use case method was called once with the correct parameters
-        verify(getTimelineUseCase).getTimeline(userId);
+    static class TestConfig {
+        @Bean
+        GetTimelineUseCase getTimelineUseCase() {
+            return Mockito.mock(GetTimelineUseCase.class);
+        }
     }
 
     @Test
-    public void testGetTimelineWithoutCursor() throws Exception {
+    void shouldGetTimelineSuccessfully() throws Exception {
         // given
-        mockMvc = MockMvcBuilders.standaloneSetup(timelineController).build();
-
         UUID userId = UUID.randomUUID();
-        int limit = 20;
 
-        Tweet tweet = Tweet.builder()
-                .content("This is a test tweet")
-                .createdAt(LocalDateTime.now())
+        Tweet tweet1 = Tweet.builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .content("First tweet")
+                .createdAt(LocalDateTime.now().withNano(0))
                 .build();
 
-        when(getTimelineUseCase.getTimeline(userId))
-                .thenReturn(Collections.singletonList(tweet));
+        Tweet tweet2 = Tweet.builder()
+                .id(UUID.randomUUID())
+                .userId(userId)
+                .content("Second tweet")
+                .createdAt(LocalDateTime.now().withNano(0))
+                .build();
 
-        // Assert
-        mockMvc.perform(get("/api/timeline")
-                        .header("X-USER-ID", userId.toString())
-                        .param("limit", String.valueOf(limit)))
+        given(getTimelineUseCase.getTimeline(userId))
+                .willReturn(List.of(tweet1, tweet2));
+
+        // --- Act & Assert ---
+        mockMvc.perform(get("/api/timeline/{userId}", userId)
+                        .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].content").value("This is a test tweet"));
-
-        // Verify that the use case method was called once with the default cursor (LocalDateTime.MIN)
-        verify(getTimelineUseCase).getTimeline(userId);
+                .andExpect(jsonPath("$.userId").value(userId.toString()))
+                .andExpect(jsonPath("$.tweets.length()").value(2))
+                // Validamos el primer tweet
+                .andExpect(jsonPath("$.tweets[0].id").value(tweet1.getId().toString()))
+                .andExpect(jsonPath("$.tweets[0].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.tweets[0].content").value("First tweet"))
+                .andExpect(jsonPath("$.tweets[0].createdAt").value(tweet1.getCreatedAt().toString()))
+                // Validamos el segundo tweet
+                .andExpect(jsonPath("$.tweets[1].id").value(tweet2.getId().toString()))
+                .andExpect(jsonPath("$.tweets[1].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.tweets[1].content").value("Second tweet"))
+                .andExpect(jsonPath("$.tweets[1].createdAt").value(tweet2.getCreatedAt().toString()));
     }
 }

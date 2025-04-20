@@ -16,12 +16,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class TimelineMongoRepository implements TimelineRepository {
 
-    private final MongoRepository<TimelineDocument, String> mongoRepository;
+    private final MongoRepository<TimelineDocument, String> repository;
 
     @Override
     public List<UUID> getTweetIdsForUser(UUID userId, LocalDateTime cursor, int limit) {
         // Implementación para obtener los IDs de los tweets del timeline de un usuario
-        TimelineDocument timelineDocument = mongoRepository.findById(userId.toString()).orElse(null);
+        TimelineDocument timelineDocument = repository.findById(userId.toString()).orElse(null);
 
         if (timelineDocument == null) {
             return List.of();
@@ -41,6 +41,6 @@ public class TimelineMongoRepository implements TimelineRepository {
                 .id(userId.toString())
                 .tweets(tweets)
                 .build();
-        mongoRepository.save(timelineDocument);
+        repository.save(timelineDocument);
     }
 }

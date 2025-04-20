@@ -8,48 +8,69 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(TweetController.class)
+@Import(TweetControllerTest.TestConfig.class)
 class TweetControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private PostTweetUseCase postTweetUseCase;
+    private ObjectMapper objectMapper;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private PostTweetUseCase postTweetUseCase;
+
+    static class TestConfig {
+        @Bean
+        PostTweetUseCase postTweetUseCase() {
+            return Mockito.mock(PostTweetUseCase.class);
+        }
+    }
 
     @Test
     void shouldPostTweetSuccessfully() throws Exception {
         // given
-        UUID userId = UUID.randomUUID();
-        String content = "Hola Mundo esto es un TEST!";
-        Tweet tweet = new Tweet(UUID.randomUUID(), userId, content, LocalDateTime.now());
+        UUID userId    = UUID.randomUUID();
+        String content = "¡Hola mundo desde el test!";
+        UUID tweetId   = UUID.randomUUID();
+        LocalDateTime createdAt = LocalDateTime.now().withNano(0);
 
-        Mockito.when(postTweetUseCase.postTweet(any(), any())).thenReturn(tweet);
+        Tweet tweet = Tweet.builder()
+                .id(tweetId)
+                .userId(userId)
+                .content(content)
+                .createdAt(createdAt)
+                .build();
 
-        PostTweetRequest request = new PostTweetRequest();
-        request.setContent(content);
+        given(postTweetUseCase.postTweet(userId, content))
+                .willReturn(tweet);
 
-        // assert
+        PostTweetRequest req = new PostTweetRequest();
+        req.setUserId(userId);
+        req.setContent(content);
+
+        // when & then
         mockMvc.perform(post("/api/tweets")
-                        .header("X-USER-ID", userId.toString())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId").value(userId.toString()))
-                .andExpect(jsonPath("$.content").value(content));
+                .andExpect(jsonPath("$.tweets[0].id").value(tweetId.toString()))
+                .andExpect(jsonPath("$.tweets[0].userId").value(userId.toString()))
+                .andExpect(jsonPath("$.tweets[0].content").value(content))
+                .andExpect(jsonPath("$.tweets[0].createdAt").value(createdAt.toString()));
     }
 }

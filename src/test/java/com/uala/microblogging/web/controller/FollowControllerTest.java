@@ -1,42 +1,59 @@
 package com.uala.microblogging.web.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.uala.microblogging.application.useCase.FollowUserUseCase;
-import org.junit.jupiter.api.BeforeEach;
+import com.uala.microblogging.web.dto.request.FollowUserRequest;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.UUID;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WebMvcTest(FollowController.class)
+@Import(FollowControllerTest.TestConfig.class)
 class FollowControllerTest {
 
-    private FollowUserUseCase followUserUseCase;
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void setUp() {
-        followUserUseCase = Mockito.mock(FollowUserUseCase.class);
-        FollowController controller = new FollowController(followUserUseCase);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private FollowUserUseCase followUserUseCase;
+
+    static class TestConfig {
+        @Bean
+        FollowUserUseCase followUserUseCase() {
+            return Mockito.mock(FollowUserUseCase.class);
+        }
     }
 
     @Test
     void shouldFollowUserSuccessfully() throws Exception {
-        UUID userId = UUID.randomUUID();
-        UUID targetUserId = UUID.randomUUID();
+        // given
+        UUID followerId = UUID.randomUUID();
+        UUID followeeId = UUID.randomUUID();
+        FollowUserRequest req = new FollowUserRequest();
+        req.setFollowerId(followerId);
+        req.setFolloweeId(followeeId);
 
-        // No need to stub followUserUseCase.follow() since it's void
+        // Act & Assert
         mockMvc.perform(post("/api/follow")
-                        .param("followerId", userId.toString())
-                        .param("followeeId", targetUserId.toString()))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk());
 
-        verify(followUserUseCase, times(1)).follow(userId, targetUserId);
+        verify(followUserUseCase).follow(followerId, followeeId);
     }
 }

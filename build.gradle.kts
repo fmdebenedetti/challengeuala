@@ -35,6 +35,7 @@ dependencies {
 	implementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("io.lettuce:lettuce-core")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
 	compileOnly("org.projectlombok:lombok")
 	developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 	annotationProcessor("org.projectlombok:lombok")

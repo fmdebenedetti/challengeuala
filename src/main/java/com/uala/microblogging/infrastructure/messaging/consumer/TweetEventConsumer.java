@@ -24,7 +24,6 @@ public class TweetEventConsumer {
 
     @KafkaListener(topics = "tweets", groupId = "timeline-group")
     public void consume(ConsumerRecord<String, String> record) {
-        log.info("--- TweetEventConsumer ---");
         try {
             Tweet tweet = objectMapper.readValue(record.value(), Tweet.class);
             log.info("Consuming tweet: {}", tweet);
